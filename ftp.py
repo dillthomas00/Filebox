@@ -1,6 +1,6 @@
-from ftplib import FTP
+import ftplib
 import tkinter as tk
-import os, re
+import os, re, wget
 #ftp.cwd('dir') -- Changes directory
 class app():
     def __init__(self):
@@ -31,14 +31,17 @@ class app():
         tk.Label(self.frame, text = "Host", font=("Bradley Hand ITC", self.height5, "bold"), bg = 'white').pack(pady = (0, self.height5))
         host_Entry = tk.Entry(self.frame, width = 30, font=("Bradley Hand ITC", self.height5, "bold"), bg = 'white', justify = "center")
         host_Entry.pack(pady = (0, self.height5))
+        host_Entry.insert(tk.END, "files.000webhost.com")
 
         tk.Label(self.frame, text = "Username", font=("Bradley Hand ITC", self.height5, "bold"), bg = 'white').pack(pady = (0, self.height5))
         username_Entry = tk.Entry(self.frame, width = 30, font=("Bradley Hand ITC", self.height5, "bold"), bg = 'white', justify = "center")
         username_Entry.pack(pady = (0, self.height5))
+        username_Entry.insert(tk.END, "llysfaen-village-hall")
 
         tk.Label(self.frame, text = "Password", font=("Bradley Hand ITC", self.height5, "bold"), bg = 'white').pack(pady = (0, self.height5))
         password_Entry = tk.Entry(self.frame, width = 30, font=("Bradley Hand ITC", self.height5, "bold"), bg = 'white', justify = "center", show = "*")
         password_Entry.pack(pady = (0, self.height5))
+        password_Entry.insert(tk.END, "Swimwear123")
 
         tk.Label(self.frame, text = "Port", font=("Bradley Hand ITC", self.height5, "bold"), bg = 'white').pack(pady = (0, self.height5))
         port_Entry = tk.Entry(self.frame, width = 30, font=("Bradley Hand ITC", self.height5, "bold"), bg = 'white', justify = "center")
@@ -55,7 +58,7 @@ class app():
         self.username = username_Entry.get()
         self.password = password_Entry.get()
         self.port = port_Entry.get()        
-        self.ftp = FTP(self.host)     # Uses default port (21)
+        self.ftp = ftplib.FTP(self.host)     # Uses default port (21)
         self.ftp.login(user = self.username, passwd = self.password)
         self.frame.pack_forget()
         self.frame = tk.Frame(self.root, bg = 'white')
@@ -113,35 +116,61 @@ class app():
         self.inner_Frame.bind("<Configure>", lambda event, canvas = Canvas:self.MyScrollControl(Canvas, width, height))
 
 
-        self.inner_Left_Frame = tk.Frame(self.inner_Frame, bg = 'white')
-        self.inner_Left_Frame.pack(side=tk.LEFT)
+        self.inner_Grid_Frame = tk.Frame(self.inner_Frame, bg = 'white')
+        self.inner_Grid_Frame.pack(side=tk.LEFT)
 
-        self.inner_Middle_Frame = tk.Frame(self.inner_Frame, bg = 'white')
-        self.inner_Middle_Frame.pack(side=tk.LEFT)
-
-        self.inner_Right_Frame = tk.Frame(self.inner_Frame, bg = 'white')
-        self.inner_Right_Frame.pack(side=tk.LEFT)
         counter = 0
         
         for x in self.ftp.nlst(self.ftp.pwd()):
-            tk.Radiobutton(self.inner_Left_Frame, bg = 'white', relief = tk.FLAT, font=("Bradley Hand ITC", self.height5, "bold")).pack()
+            if x == "." or x == "..":
+                tk.Button(self.inner_Grid_Frame, text = x, font=("Bradley Hand ITC", self.height5, "bold"), bg = 'white', relief = tk.FLAT, command = lambda name = x: self.File_Navigation(
+                    name, width, height, outer_Frame)).grid(row = counter, column = 1, padx = self.width1 * 3, sticky = tk.W)
+            else:
+                tk.Radiobutton(self.inner_Grid_Frame, bg = 'white', relief = tk.FLAT, font=("Bradley Hand ITC", self.height4, "bold")).grid(row = counter, column = 0)
 
-            tk.Button(self.inner_Middle_Frame, text = x, font=("Bradley Hand ITC", self.height5, "bold"), bg = 'white', relief = tk.FLAT, command = lambda name = x: self.File_Navigation(
-                name, width, height, outer_Frame)).pack(anchor = tk.W)
+                tk.Button(self.inner_Grid_Frame, text = x, font=("Bradley Hand ITC", self.height5, "bold"), bg = 'white', relief = tk.FLAT, command = lambda name = x: self.File_Navigation(
+                    name, width, height, outer_Frame)).grid(row = counter, column = 1, padx = self.width1 * 3, sticky = tk.W)
 
-            tk.Button(self.inner_Right_Frame, text = "Download", font=("Bradley Hand ITC", self.height5, "bold"), bg = 'white', relief = tk.FLAT, command = lambda name = x: self.File_Download(name)).pack()
-
-
+                tk.Button(self.inner_Grid_Frame, text = "Download", font=("Bradley Hand ITC", self.height5, "bold"), bg = 'white', relief = tk.FLAT, command = lambda name = x: self.File_Download(name)).grid(row = counter, column = 2)
+                
             counter = counter + 1
 
     def File_Download(self, name):
         try:
-            self.ftp.retrbinary("RETR " + name ,open(".\\Downloaded\\" + name, 'wb').write)
+            self.ftp.retrbinary("RETR " + name ,open(".//Downloaded//" + name, 'wb').write)
         except FileNotFoundError:
-            os.makedirs(".\\Downloaded")
-            self.ftp.retrbinary("RETR " + name ,open(".\\Downloaded\\" + name, 'wb').write)
+            os.makedirs(".//Downloaded")
+            self.ftp.retrbinary("RETR " + name ,open(".//Downloaded//" + name, 'wb').write)
+        except ftplib.error_perm:
+            name = self.current_dir + "//" + name
+            destination = ".//Downloaded/ "
+            self.Folder_Download(name, destination)
+            
+    def Folder_Download(self, path, destination):
+        try:
+            self.ftp.cwd(path)
+            #clone path to destination
+            os.chdir(destination)
+            os.mkdir(destination[0:len(destination)-1]+path)
+        except FileNotFoundError::
+            os.makedirs(
+            #folder already exists at destination
 
-        
+        filelist = self.ftp.nlst()
 
+        for file in filelist:
+            try:
+                #this will check if file is folder:
+                self.ftp.cwd(path+file+"/")
+                #if so, explore it:
+                downloadFiles(path+file,destination)
+            except ftplib.error_perm:
+                #not a folder with accessible content
+                #download & return
+                os.chdir(destination[0:len(destination)-1]+path)
+                #possibly need a permission exception catch:
+                self.ftp.retrbinary("RETR "+file, open(os.path.join(destination,file),"wb").write)
+        return
 
+# https://stackoverflow.com/questions/2605119/downloading-a-directory-tree-with-ftplib - final comment
 my_Gui = app()
