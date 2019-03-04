@@ -123,7 +123,7 @@ class app():
                 "<Configure>", lambda event, canvas=Canvas: self.myscrollcontrol(Canvas))
             self.inner_Grid_Frame = tk.Frame(self.inner_Frame, bg='white')
             self.inner_Grid_Frame.pack(side=tk.LEFT)
-            counter = 0c
+            counter = 0
             for x in self.ftp.nlst(self.ftp.pwd()):
                 if x == "." or x == "..":
                     tk.Button(self.inner_Grid_Frame, text=x, font=("Bradley Hand ITC", self.height5, "bold"), bg='white', relief=tk.FLAT, command=lambda name=x: self.file_navigation(
